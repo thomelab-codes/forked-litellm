@@ -218,3 +218,63 @@ class TestPromptCacheKeyIntegration:
             prompt_cache_key="test-cache-key-123",
         )
         assert optional_params.get("prompt_cache_key") == "test-cache-key-123"
+
+
+class TestVideoUrlContentTransformation:
+    """Tests for video_url content type handling in OpenAI transformation"""
+
+    def setup_method(self):
+        self.config = OpenAIGPTConfig()
+
+    def test_video_url_string_normalized_to_dict(self):
+        """Test that video_url as a string is normalized to dict format."""
+        content_item = {
+            "type": "video_url",
+            "video_url": "https://example.com/video.mp4",
+        }
+        result = self.config._apply_common_transform_content_item(content_item)
+        assert result["type"] == "video_url"
+        assert isinstance(result["video_url"], dict)
+        assert result["video_url"]["url"] == "https://example.com/video.mp4"
+
+    def test_video_url_dict_preserved(self):
+        """Test that video_url as a dict is preserved correctly."""
+        content_item = {
+            "type": "video_url",
+            "video_url": {
+                "url": "https://example.com/video.mp4",
+                "detail": "low",
+            },
+        }
+        result = self.config._apply_common_transform_content_item(content_item)
+        assert result["type"] == "video_url"
+        assert isinstance(result["video_url"], dict)
+        assert result["video_url"]["url"] == "https://example.com/video.mp4"
+        assert result["video_url"]["detail"] == "low"
+
+    def test_video_url_format_param_filtered(self):
+        """Test that litellm-specific 'format' param is filtered from video_url dict."""
+        content_item = {
+            "type": "video_url",
+            "video_url": {
+                "url": "https://example.com/video.mp4",
+                "detail": "high",
+                "format": "video/mp4",
+            },
+        }
+        result = self.config._apply_common_transform_content_item(content_item)
+        assert result["type"] == "video_url"
+        assert "format" not in result["video_url"]
+        assert result["video_url"]["url"] == "https://example.com/video.mp4"
+        assert result["video_url"]["detail"] == "high"
+
+    def test_image_url_still_works(self):
+        """Test that image_url handling still works after video_url addition."""
+        content_item = {
+            "type": "image_url",
+            "image_url": "https://example.com/image.png",
+        }
+        result = self.config._apply_common_transform_content_item(content_item)
+        assert result["type"] == "image_url"
+        assert isinstance(result["image_url"], dict)
+        assert result["image_url"]["url"] == "https://example.com/image.png"

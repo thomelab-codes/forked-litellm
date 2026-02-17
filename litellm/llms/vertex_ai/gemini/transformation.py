@@ -36,6 +36,7 @@ from litellm.types.llms.openai import (
     ChatCompletionImageObject,
     ChatCompletionTextObject,
     ChatCompletionUserMessage,
+    ChatCompletionVideoObject,
 )
 from litellm.types.llms.vertex_ai import *
 from litellm.types.llms.vertex_ai import (
@@ -316,6 +317,23 @@ def _gemini_convert_messages_with_history(  # noqa: PLR0915
                                     model=model,
                                 )
                                 _parts.append(_part)
+                        elif element["type"] == "video_url":
+                            video_element = cast(ChatCompletionVideoObject, element)
+                            format: Optional[str] = None
+                            media_resolution_enum: Optional[Dict[str, str]] = None
+                            if isinstance(video_element["video_url"], dict):
+                                video_url = video_element["video_url"]["url"]
+                                detail = video_element["video_url"].get("detail")
+                                media_resolution_enum = _convert_detail_to_media_resolution_enum(detail)
+                            else:
+                                video_url = video_element["video_url"]
+                            _part = _process_gemini_media(
+                                image_url=video_url,
+                                format=format,
+                                media_resolution_enum=media_resolution_enum,
+                                model=model,
+                            )
+                            _parts.append(_part)
                         elif element["type"] == "file":
                             file_element = cast(ChatCompletionFileObject, element)
                             file_id = file_element["file"].get("file_id")

@@ -1324,3 +1324,57 @@ def test_assistant_message_with_images_in_conversation_history():
     inline_data_parts = [part for part in contents[1]["parts"] if "inline_data" in part]
     assert len(inline_data_parts) == 1
     assert inline_data_parts[0]["inline_data"]["mime_type"] == "image/png"
+
+
+def test_video_url_string_in_user_message():
+    """Test that video_url as a string is converted to Gemini media format."""
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "What is happening in this video?"},
+                {
+                    "type": "video_url",
+                    "video_url": "gs://my-bucket/my-video.mp4",
+                },
+            ],
+        }
+    ]
+
+    contents = _gemini_convert_messages_with_history(messages=messages)
+
+    assert len(contents) == 1
+    assert contents[0]["role"] == "user"
+    parts = contents[0]["parts"]
+    assert len(parts) == 2
+    assert parts[0]["text"] == "What is happening in this video?"
+    assert "file_data" in parts[1]
+    assert parts[1]["file_data"]["file_uri"] == "gs://my-bucket/my-video.mp4"
+
+
+def test_video_url_dict_in_user_message():
+    """Test that video_url as a dict with url key is converted to Gemini media format."""
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Describe this video."},
+                {
+                    "type": "video_url",
+                    "video_url": {
+                        "url": "gs://my-bucket/my-video.mp4",
+                    },
+                },
+            ],
+        }
+    ]
+
+    contents = _gemini_convert_messages_with_history(messages=messages)
+
+    assert len(contents) == 1
+    assert contents[0]["role"] == "user"
+    parts = contents[0]["parts"]
+    assert len(parts) == 2
+    assert parts[0]["text"] == "Describe this video."
+    assert "file_data" in parts[1]
+    assert parts[1]["file_data"]["file_uri"] == "gs://my-bucket/my-video.mp4"
